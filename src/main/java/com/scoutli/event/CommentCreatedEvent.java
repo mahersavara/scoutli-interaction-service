@@ -13,6 +13,9 @@ public class CommentCreatedEvent {
     public String content;
     public LocalDateTime timestamp;
 
+    public CommentCreatedEvent() {
+}
+
     // TODO: make constructor default
     public CommentCreatedEvent(Long commentId, Long discoveryId,
             String authorEmail, String content) {
