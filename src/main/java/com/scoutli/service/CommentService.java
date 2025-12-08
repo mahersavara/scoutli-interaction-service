@@ -6,10 +6,9 @@ import com.scoutli.api.dto.CommentDTO;
 import com.scoutli.domain.entity.Comment;
 import com.scoutli.domain.repository.CommentRepository;
 import com.scoutli.event.CommentCreatedEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.smallrye.reactive.messaging.annotations.Channel;
-import io.smallrye.reactive.messaging.annotations.Emitter;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -33,10 +32,10 @@ public class CommentService {
 
     @Inject
     @Channel("comment-created-out")
-    Emitter<String> eventEmitter;
-    
-    @Inject
-    ObjectMapper objectMapper;
+    Emitter<CommentCreatedEvent> eventEmitter;
+
+    // @Inject
+    // ObjectMapper objectMapper;
 
     public List<CommentDTO> getCommentsByDiscoveryId(Long discoveryId) {
         return commentRepository.list("discoveryId", discoveryId).stream()
@@ -49,16 +48,18 @@ public class CommentService {
         log.info("Creating comment for discovery {} by user {}", discoveryId, userEmail);
 
         // Temporarily disabled for Kafka testing
-        // Optional<UserDTO> userDetailsOptional = authServiceRestClient.getMyUserDetails()
-        //         .onFailure().recoverWithItem((UserDTO) null)
-        //         .onItem().transform(Optional::ofNullable)
-        //         .await().indefinitely();
-        // 
+        // Optional<UserDTO> userDetailsOptional =
+        // authServiceRestClient.getMyUserDetails()
+        // .onFailure().recoverWithItem((UserDTO) null)
+        // .onItem().transform(Optional::ofNullable)
+        // .await().indefinitely();
+        //
         // if (userDetailsOptional.isPresent()) {
-        //     UserDTO userDetails = userDetailsOptional.get();
-        //     log.info("Fetched user details from Auth Service: {}", userDetails);
+        // UserDTO userDetails = userDetailsOptional.get();
+        // log.info("Fetched user details from Auth Service: {}", userDetails);
         // } else {
-        //     log.warn("Proceeding with comment creation using only userEmail due to failure to fetch user details from Auth Service.");
+        // log.warn("Proceeding with comment creation using only userEmail due to
+        // failure to fetch user details from Auth Service.");
         // }
 
         Comment comment = new Comment();
@@ -70,16 +71,12 @@ public class CommentService {
         commentRepository.persist(comment);
         CommentDTO dto = toDTO(comment);
 
-        CommentCreatedEvent event = new CommentCreatedEvent(comment.getId(), discoveryId, userEmail, request.content);
+        CommentCreatedEvent event = new CommentCreatedEvent(comment.getId(), discoveryId, userEmail,
+                request.content);
 
-        try {
-            String eventJson = objectMapper.writeValueAsString(event);
-            eventEmitter.send(eventJson);
-            log.info("✅ Comment created (ID: {}) and event emitted to Kafka", comment.getId());
-        } catch (Exception e) {
-            log.error("Failed to serialize event to JSON", e);
-        }
-        
+        eventEmitter.send(event).toCompletableFuture().join();
+        log.info("✅ Comment created (ID: {}) and event emitted to Kafka", comment.getId());
+
         return dto;
     }
 

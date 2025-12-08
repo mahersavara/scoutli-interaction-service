@@ -28,8 +28,8 @@ public class CommentController {
     // @RolesAllowed({ "MEMBER", "ADMIN" }) // Temporarily disabled for testing
     public Response create(@PathParam("discoveryId") Long discoveryId, CommentDTO.CreateRequest request,
             @Context SecurityContext securityContext) {
-        String email = securityContext.getUserPrincipal() != null ? 
-            securityContext.getUserPrincipal().getName() : "test@example.com";
+        String email = securityContext.getUserPrincipal() != null ? securityContext.getUserPrincipal().getName()
+                : "test@example.com";
         CommentDTO created = commentService.createComment(discoveryId, request, email);
         return Response.status(201).entity(created).build();
     }
